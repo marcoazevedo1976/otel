@@ -1,13 +1,38 @@
-
 services:
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - clima-net
+
+  otel-collector:
+    image: otel/opentelemetry-collector:latest
+    container_name: otel-collector
+    command: ["--config=/etc/otel/config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel/config.yaml
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+    networks:
+      - clima-net
+    depends_on:
+      - zipkin
+
   servicob:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: servicob
     command: ["/app/servicob"]
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     networks:
       - clima-net
+    depends_on:
+      - otel-collector
 
   servicoa:
     build:
@@ -17,8 +42,11 @@ services:
     ports:
       - "8080:8080"
     command: ["/app/servicoa"]
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     depends_on:
       - servicob
+      - otel-collector
     networks:
       - clima-net
 
