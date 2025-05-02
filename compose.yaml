@@ -1,0 +1,27 @@
+
+services:
+  servicob:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: servicob
+    command: ["/app/servicob"]
+    networks:
+      - clima-net
+
+  servicoa:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: servicoa
+    ports:
+      - "8080:8080"
+    command: ["/app/servicoa"]
+    depends_on:
+      - servicob
+    networks:
+      - clima-net
+
+networks:
+  clima-net:
+    driver: bridge
