@@ -48,7 +48,7 @@ func handleCep(w http.ResponseWriter, r *http.Request) {
 	}
 	cep := req.Cep
 	if !cepRegex.MatchString(cep) {
-		respondWithError(w, http.StatusBadRequest, "Invalid CEP format")
+		respondWithError(w, http.StatusUnprocessableEntity, "invalid zipcode")
 		return
 	}
 
@@ -72,13 +72,19 @@ func handleCep(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		respondWithError(w, resp.StatusCode, "error from servicob")
-		return
-	}
-
 	var data map[string]interface{}
 	json.NewDecoder(resp.Body).Decode(&data)
+
+	if resp.StatusCode != http.StatusOK {
+		var message string
+		if str, ok := data["message"].(string); ok {
+			message = str
+		} else {
+			message = "Unknown error"
+		}
+		respondWithError(w, resp.StatusCode, message)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
